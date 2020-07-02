@@ -1,0 +1,13 @@
+{
+  "name": "gamificate-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "gamificate.js",
+  "homepage": "https://github.com/gamificate-engine/gamificate-js",
+  "author": "Pedro Moreira",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.19.2"
+  },
+  "type": "module"
+}
