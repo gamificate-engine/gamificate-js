@@ -1,37 +1,40 @@
-import axios from 'axios'
+const axios = require('axios')
 
 let _id_realm;
 let _api_key;
-let _access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1OTM3MTM4MTUsIm5iZiI6MTU5MzcxMzgxNSwianRpIjoiNTViZWVmZWQtMmUwNC00OGQwLThjODQtZmZkNmQ4ZTkwNjI4IiwiZXhwIjoxNTkzNzE0NzE1LCJpZGVudGl0eSI6MiwiZnJlc2giOmZhbHNlLCJ0eXBlIjoiYWNjZXNzIn0.0tleuxZU17poLS15aQ5xjAVZ-RyvpR-lRw1lk_EtIls"
-let _refresh_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1OTM3MTM4MTUsIm5iZiI6MTU5MzcxMzgxNSwianRpIjoiMzg4ZDZmNzYtMTJkMC00NDJlLWE1YTMtNDBhNWFkNDNkZjAzIiwiZXhwIjoxNTk2MzA1ODE1LCJpZGVudGl0eSI6MiwidHlwZSI6InJlZnJlc2gifQ.5WR_yTDehiBynfmmY_P69XpUtYYScCnCKNll2cgYLa4";
-let GAMIFICATE_URL = "http://localhost:5000/api/"
+let _access_token;
+let _refresh_token
+let GAMIFICATE_URL = "https://www.gamificate-engine.com/api/"
 
 const instance = axios.create({
     baseURL: GAMIFICATE_URL
 })
 
 
-export function create(id_realm, api_key) {
+function create(id_realm, api_key) {
     _id_realm = id_realm;
     _api_key = api_key;
+    return _authenticate();
 }
 
 
 function _authenticate() {
     instance.post('auth', { id_realm: _id_realm, api_key: _api_key })
-            .then(response => {
-                _access_token = response.data.access_token;
-                _refresh_token = response.data.refresh_token;
-            })
-            .catch(error => console.log(error.response))
+        .then(response => {
+            _access_token = response.data.access_token;
+            _refresh_token = response.data.refresh_token;
+        })
+        .catch(error => {
+            console.log(error.response)
+        })
 }
 
 
 let access_token_interceptor = instance.interceptors.request.use(config => {
-    if (_access_token) {
-        config.headers['Authorization'] = `Bearer ${_access_token}`;
-    }
-    return config;
+        if (_access_token) {
+            config.headers['Authorization'] = `Bearer ${_access_token}`;
+        }
+        return config;
     },error => {
         Promise.reject(error)
     }
@@ -47,300 +50,281 @@ instance.interceptors.response.use((response) => {
             instance.interceptors.request.eject(access_token_interceptor)
 
             return instance.post('auth/refresh', { }, {
-                                headers: {
-                                    Authorization: `Bearer ${_refresh_token}`
-                                }})
-                            .then(res => {
-                                if (res.status === 200) {
-                                    // 1) save token
-                                    _access_token = res.data.access_token;
+                headers: {
+                    Authorization: `Bearer ${_refresh_token}`
+                }})
+                .then(res => {
+                    if (res.status === 200) {
+                        _access_token = res.data.access_token;
 
-                                    // 2) Change Authorization header
-                                    access_token_interceptor = instance.interceptors.request.use(config => {
-                                        if (_access_token) {
-                                            config.headers['Authorization'] = `Bearer ${_access_token}`;
-                                        }
-                                        return config;
-                                    },error => {
-                                        Promise.reject(error)
-                                    });
+                        access_token_interceptor = instance.interceptors.request.use(config => {
+                            if (_access_token) {
+                                config.headers['Authorization'] = `Bearer ${_access_token}`;
+                            }
+                            return config;
+                        },error => {
+                            Promise.reject(error)
+                        });
 
-                                    // 3) return originalRequest object with Axios.
-                                    return instance(originalRequest);
-                                }
-                            })
-                            .catch(error => console.log(error))
+                        return instance(originalRequest);
+                    }
+                })
+                .catch(error => console.log(error))
         }
         return Promise.reject(error);
     }
 )
 
 
-export function getBadges() {
-    instance.get('badges')
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getUsersBadgesProgress() {
-    instance.get('badges/progress')
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getBadge(id_badge) {
-    instance.get(`badges/${id_badge}`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getUsersBadgeProgress(id_badge) {
-    instance.get(`badges/${id_badge}/progress`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getUsersBadgeFinished(id_badge) {
-    instance.get(`badges/${id_badge}/progress/finished`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getUsersBadgeUnfinished(id_badge) {
-    instance.get(`badges/${id_badge}/progress/unfinished`)
+function getBadges() {
+    return instance.get('badges')
         .then(response => {
-            //console.log(response.data)
             return response.data
         })
         .catch(error => console.log(error))
 }
 
 
-export function getLeaderboardByLevel() {
-    instance.get(`leaderboards/level`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getLeaderboardByTotalBadges() {
-    instance.get(`leaderboards/total_badges`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getLeaderboardByTotalXP() {
-    instance.get(`leaderboards/total_xp`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getRewards() {
-    instance.get(`rewards`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getUsersRedeemedRewards() {
-    instance.get(`rewards/redeems`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getReward(id_reward) {
-    instance.get(`rewards/${id_reward}`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getUsersRedeemedReward(id_reward) {
-    instance.get(`rewards/${id_reward}/redeems`)
-            .then(response => {
-                console.log(response.data)
-                return response.data
-            })
-            .catch(error => {
-                if(error.response.status === 401 && error.response.data.msg === 'Token has expired') {
-                    //_refreshToken(() => getUsersRedeemedReward(id_reward))
-                }
-                else return error.response;
-            })
-}
-
-
-export function getAllUsers() {
-    instance.get(`users`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function registerUser(username, email) {
-    instance.post(`users`, { username: username, email: email })
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getUser(id_user) {
-    instance.get(`users/${id_user}`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function editUser(id_user, username, email, active) {
-    instance.put(`users/${id_user}`, { username: username, email: email, active: active })
-            .then(response => {
-                console.log(response.data)
-                return response.data
-            })
-            .catch(error => {
-                if(error.response.status === 401 && error.response.data.msg === 'Token has expired') {
-                    console.log("vai refrescar1")
-                    _refreshToken().then(editUser(id_user, username, email, active))
-                    console.log("refrescar2")
-
-                }
-                else return error.response;
-            })
-}
-
-
-export function getUsersUnredeemedRewards() {
-    instance.get(`users/rewards/unredeemed`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-export function getUserRedeemedRewards(id_user) {
-    instance.get(`users/${id_user}/rewards`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function redeemUserReward(id_user, id_reward) {
-    instance.post(`users/${id_user}/rewards`, { id_reward: id_reward })
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getUserUnredeemedRewards(id_user) {
-    instance.get(`users/${id_user}/rewards/unredeemed`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getUserBadgeProgress(id_user, id_badge) {
-    instance.get(`users/${id_user}/badges/${id_badge}`)
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function updateUserBadgeProgress(id_user, id_badge, progress) {
-    instance.put(`users/${id_user}/badges/${id_badge}`, { progress: progress })
-            .then(response => {
-                //console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getUserBadgesProgress(id_user) {
-    instance.get(`users/${id_user}/badges/all`)
-            .then(response => {
-                console.log(response.data)
-                return response.data
-            })
-            .catch(error => console.log(error))
-}
-
-
-export function getUserBadgesFinished(id_user) {
-    instance.get(`users/${id_user}/badges/finished`)
+function getUsersBadgesProgress() {
+    return instance.get('badges/progress')
         .then(response => {
-            console.log(response.data)
             return response.data
         })
         .catch(error => console.log(error))
 }
 
 
-create( 2, "44a21b06a507018b62b7c4046f31b5c9");
-//_authenticate();
+function getBadge(id_badge) {
+    return instance.get(`badges/${id_badge}`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
 
-setTimeout(getUserBadgesFinished, 2000, 2);
+
+function getUsersBadgeProgress(id_badge) {
+    return instance.get(`badges/${id_badge}/progress`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
 
 
+function getUsersBadgeFinished(id_badge) {
+    return instance.get(`badges/${id_badge}/progress/finished`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getUsersBadgeUnfinished(id_badge) {
+    return instance.get(`badges/${id_badge}/progress/unfinished`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getLeaderboardByLevel() {
+    return instance.get(`leaderboards/level`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getLeaderboardByTotalBadges() {
+    return instance.get(`leaderboards/total_badges`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getLeaderboardByTotalXP() {
+    return instance.get(`leaderboards/total_xp`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getRewards() {
+    return instance.get(`rewards`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getUsersRedeemedRewards() {
+    return instance.get(`rewards/redeems`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getReward(id_reward) {
+    return instance.get(`rewards/${id_reward}`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getUsersRedeemedReward(id_reward) {
+    return instance.get(`rewards/${id_reward}/redeems`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getAllUsers() {
+    return instance.get(`users`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function registerUser(username, email) {
+    return instance.post(`users`, { username: username, email: email })
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getUser(id_user) {
+    return instance.get(`users/${id_user}`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function editUser(id_user, username, email, active) {
+    return instance.put(`users/${id_user}`, { username: username, email: email, active: active })
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getUsersUnredeemedRewards() {
+    return instance.get(`users/rewards/unredeemed`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+function getUserRedeemedRewards(id_user) {
+    return instance.get(`users/${id_user}/rewards`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function redeemUserReward(id_user, id_reward) {
+    return instance.post(`users/${id_user}/rewards`, { id_reward: id_reward })
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getUserUnredeemedRewards(id_user) {
+    return instance.get(`users/${id_user}/rewards/unredeemed`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getUserBadgeProgress(id_user, id_badge) {
+    return instance.get(`users/${id_user}/badges/${id_badge}`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function updateUserBadgeProgress(id_user, id_badge, progress) {
+    return instance.put(`users/${id_user}/badges/${id_badge}`, { progress: progress })
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getUserBadgesProgress(id_user) {
+    return instance.get(`users/${id_user}/badges/all`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+function getUserBadgesFinished(id_user) {
+    return instance.get(`users/${id_user}/badges/finished`)
+        .then(response => {
+            return response.data
+        })
+        .catch(error => console.log(error))
+}
+
+
+module.exports = {
+    create,
+    getBadges,
+    getUsersBadgesProgress,
+    getBadge,
+    getUsersBadgeProgress,
+    getUsersBadgeFinished,
+    getUsersBadgeUnfinished,
+    getLeaderboardByLevel,
+    getLeaderboardByTotalBadges,
+    getLeaderboardByTotalXP,
+    getRewards,
+    getUsersRedeemedRewards,
+    getReward,
+    getUsersRedeemedReward,
+    getAllUsers,
+    registerUser,
+    getUser,
+    editUser,
+    getUsersUnredeemedRewards,
+    getUserRedeemedRewards,
+    redeemUserReward,
+    getUserUnredeemedRewards,
+    getUserBadgeProgress,
+    updateUserBadgeProgress,
+    getUserBadgesProgress,
+    getUserBadgesFinished
+}
