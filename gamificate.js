@@ -5,7 +5,7 @@ class Gamificate {
         this._id_realm = id_realm;
         this._api_key = api_key;
         this.instance = axios.create({
-            baseURL: "http://127.0.0.1:5000/api/"
+            baseURL: "https://www.gamificate-engine.com/api/"
         });
         this.access_token_interceptor = this.instance.interceptors.request.use(config => {
                 if (this._access_token) {
